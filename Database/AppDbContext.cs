@@ -11,7 +11,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<DatabaseRecords.RegisteredChannel> RegisteredChannels { get; set; } = null!;
     public DbSet<DatabaseRecords.MessageData> MessageDatas { get; set; } = null!;
-    public DbSet<DatabaseRecords.UserBias> UserBiases { get; set; } = null!;
+    public DbSet<DatabaseRecords.UserStat> UserStats { get; set; } = null!;
+    public DbSet<DatabaseRecords.ChannelStat> ChannelStats { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

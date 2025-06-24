@@ -24,7 +24,7 @@ public sealed class RegistrationModule : InteractionModuleBase<SocketInteraction
         {
             await _regSvc.RegisterChannelAsync(Context.Guild.Id, channelToRegister.Id, reportChannel.Id);
             await RespondAsync(
-                $"🔔 Registered **{channelToRegister.Mention}** for analytics! Weekly reports will post in {reportChannel.Mention}.");
+                $"🔔 Registered **{channelToRegister.Mention}** for analytics! Weekly reports will post in {reportChannel.Mention}.", ephemeral: true);
         }
     }
 }

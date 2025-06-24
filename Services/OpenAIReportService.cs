@@ -5,7 +5,7 @@ namespace PoliMeterDiscordBot.Services;
 
 public class OpenAIReportService(OpenAIClient client)
 {
-    public async Task<string> AnalyzeCsvToJsonAsync(string csvText)
+    public async Task<string> AnalyzeStats(string json)
     {
         throw new NotImplementedException();
     }

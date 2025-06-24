@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -14,6 +15,11 @@ public class WeeklyReportService(
     IDbContextFactory<AppDbContext> contextFactory)
     : IReportService
 {
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new()
+    {
+        WriteIndented = true
+    };
+
     public async Task<ReportServiceResult> GenerateReportAsync(string rootFolder)
     {
         // 1) Sunday–Saturday window
@@ -42,21 +48,14 @@ public class WeeklyReportService(
             .ToListAsync();
 
         // 4) Build the log
-        var sb = new StringBuilder();
-        foreach (var m in messages)
-        {
-            var content = m.Content.Replace("|>", "");
-            sb.Append($"{m.UserId}-{m.GuildId}-{m.ChannelId} {content} |> ");
-        }
-
-        var reportText = sb.ToString();
-
-        await File.WriteAllTextAsync(filePath, reportText, Encoding.UTF8);
+        var json = JsonSerializer.Serialize(messages, _jsonSerializerOptions);
+        await File.WriteAllTextAsync(filePath, json, Encoding.UTF8);
+        
         logger.LogInformation(
             "Wrote weekly log with {Count} entries to {Path}",
             messages.Count, filePath
         );
 
-        return new ReportServiceResult(filePath, reportText);
+        return new ReportServiceResult(filePath, json);
     }
 }

@@ -18,7 +18,7 @@ public sealed class DebugModule(IDbContextFactory<AppDbContext> contextFactory)
         await using var db = await contextFactory.CreateDbContextAsync();
 
         var regs = await db.RegisteredChannels.ToListAsync();
-        var biases = await db.UserBiases.ToListAsync();
+        var biases = await db.UserStats.ToListAsync();
         var msgCnt = await db.MessageDatas.CountAsync();
 
         var last2 = await db.MessageDatas
