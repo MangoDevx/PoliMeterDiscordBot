@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PoliMeterDiscordBot.Database;
 using PoliMeterDiscordBot.Interfaces;
@@ -10,7 +9,7 @@ using PoliMeterDiscordBot.Models;
 namespace PoliMeterDiscordBot.Services;
 
 public class WeeklyReportService(
-    IServiceProvider provider,
+    DatasetBuilderService datasetBuilderService,
     ILogger<WeeklyReportService> logger,
     IDbContextFactory<AppDbContext> contextFactory)
     : IReportService
@@ -22,40 +21,45 @@ public class WeeklyReportService(
 
     public async Task<ReportServiceResult> GenerateReportAsync(string rootFolder)
     {
-        // 1) Sunday–Saturday window
-        var today = DateTime.Today;
-        var offset = (int)today.DayOfWeek;
-        var startDate = today.AddDays(-offset);
-        var endDate = startDate.AddDays(7);
-        var weekTag = $"{startDate:yyyyMMdd}-{startDate.AddDays(6):yyyyMMdd}";
+        // 1) Determine current week (Sunday → Saturday)
+        var today     = DateTime.Today;
+        int offset    = (int)today.DayOfWeek;                  // Sunday=0…Saturday=6
+        var weekStart = today.AddDays(-offset);
+        var weekEnd   = weekStart.AddDays(7);                 // exclusive end
+        var weekTag   = $"{weekStart:yyyyMMdd}-{weekEnd.AddDays(-1):yyyyMMdd}";
 
-        var outDir = Path.Combine(
+        // 2) Prepare output directory & file path
+        var outDir    = Path.Combine(
             Directory.GetCurrentDirectory(),
             rootFolder,
             weekTag
         );
         Directory.CreateDirectory(outDir);
 
-        var fileName = $"weekly_text_{weekTag}.txt";
-        var filePath = Path.Combine(outDir, fileName);
+        var fileName  = $"dataset_{weekTag}.json";
+        var filePath  = Path.Combine(outDir, fileName);
 
-        // 3) Load & order messages
+        // 3) Load only this week's messages
         await using var db = await contextFactory.CreateDbContextAsync();
-
-        var messages = await db.MessageDatas
-            .Where(m => m.Timestamp >= startDate && m.Timestamp < endDate)
+        var messages = await db.Set<DatabaseRecords.MessageData>()
+            .Where(m => m.Timestamp >= weekStart && m.Timestamp < weekEnd)
             .OrderBy(m => m.Timestamp)
             .ToListAsync();
 
-        // 4) Build the log
-        var json = JsonSerializer.Serialize(messages, _jsonSerializerOptions);
+        // 4) Build your sampled dataset
+        var dataset = datasetBuilderService.BuildDataset(messages);
+
+        // 5) Serialize to JSON
+        var json = JsonSerializer.Serialize(dataset, _jsonSerializerOptions);
+
+        // 6) Write JSON to file
         await File.WriteAllTextAsync(filePath, json, Encoding.UTF8);
-        
         logger.LogInformation(
-            "Wrote weekly log with {Count} entries to {Path}",
-            messages.Count, filePath
+            "Wrote dataset ({Count} msgs) to {Path}",
+            dataset.Count, filePath
         );
 
-        return new ReportServiceResult(filePath, json);
+        // 7) Return the result so the job can send json to the AI
+        return new ReportServiceResult(filePath, dataset);
     }
 }

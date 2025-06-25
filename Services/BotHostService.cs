@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -15,7 +16,7 @@ using PoliMeterDiscordBot.Models;
 
 namespace PoliMeterDiscordBot.Services;
 
-public class BotHostService(
+public partial class BotHostService(
     DiscordSocketClient client,
     InteractionService interactions,
     IServiceProvider services,
@@ -71,13 +72,21 @@ public class BotHostService(
         if (message.Channel is not SocketTextChannel ch)
             return;
 
-        await using var db = await dbContextFactory.CreateDbContextAsync();
+        if (string.IsNullOrEmpty(message.Content) || message.Content.Length < 6)
+            return;
 
-        if (!(await registrationService.IsChannelRegisteredAsync(ch.Guild.Id, ch.Id)))
+        await using var db = await dbContextFactory.CreateDbContextAsync();
+        var canContinue = await registrationService.IsChannelRegisteredAsync(ch.Guild.Id, ch.Id) &&
+                          await registrationService.DoesIdenticalMessageExist(ch.Guild.Id, ch.Id, message.Content);
+
+        if (!canContinue)
             return;
-        
-        if (string.IsNullOrEmpty(message.Content))
+
+        if (MentionsRegex().IsMatch(message.Content))
+        {
+            logger.LogInformation("Rejecting message - only contains mentions. {Content}", message.Content);
             return;
+        }
 
         var fullText = message.Content ?? string.Empty;
         var tokens = message.Content?.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -115,4 +124,7 @@ public class BotHostService(
         _logger.LogInformation(msg.ToString());
         return Task.CompletedTask;
     }
+
+    [GeneratedRegex(@"^(?:\s*<(?:@!?\d+|@&\d+|#\d+)>\s*)+$", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    private static partial Regex MentionsRegex();
 }

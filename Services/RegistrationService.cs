@@ -24,4 +24,11 @@ public sealed class RegistrationService(IDbContextFactory<AppDbContext> contextF
         await using var db = await contextFactory.CreateDbContextAsync();
         return await db.RegisteredChannels.AnyAsync(c => c.GuildId == guildId && c.ChannelId == channelId);
     }
+
+    public async Task<bool> DoesIdenticalMessageExist(ulong guildId, ulong channelId, string content)
+    {
+        await using var db = await contextFactory.CreateDbContextAsync();
+        return !(await db.MessageDatas.AnyAsync(x =>
+            x.GuildId == guildId && x.ChannelId == channelId && x.Content == content));
+    }
 }

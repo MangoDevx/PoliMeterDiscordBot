@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using PoliMeterDiscordBot.Models;
+﻿using PoliMeterDiscordBot.Models;
 
 namespace PoliMeterDiscordBot.Extensions;
 
@@ -21,8 +20,7 @@ public static class StatsComputer
 
         // external shares
         stat.ExternalLinkShares = msgs.Count(m => m.Content.Contains("SEP:"));
-
-        // bias shifts: new (from LLM) minus old (from 'previous')
+        
         stat.BiasShiftAl = stat.AuthoritarianLeft
                            - (previous?.AuthoritarianLeft ?? 0m);
         stat.BiasShiftAr = stat.AuthoritarianRight
