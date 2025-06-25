@@ -113,7 +113,8 @@ public partial class BotHostService(
             GuildId: ch.Guild.Id,
             ChannelId: ch.Id,
             Content: fullText.Trim(),
-            Timestamp: message.Timestamp.UtcDateTime
+            Timestamp: message.Timestamp.UtcDateTime,
+            ParentMessageId: message.Reference.MessageId.IsSpecified ? message.Reference.MessageId.Value : null
         ));
 
         await db.SaveChangesAsync();

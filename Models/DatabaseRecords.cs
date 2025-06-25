@@ -12,7 +12,8 @@ public static class DatabaseRecords
         ulong GuildId,
         ulong ChannelId,
         string Content,
-        DateTime Timestamp)
+        DateTime Timestamp,
+        ulong? ParentMessageId = null)
     {
         public int Id { get; init; }
     }
